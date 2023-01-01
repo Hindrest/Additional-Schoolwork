@@ -1,0 +1,236 @@
+---
+title: "STT380-HW7"
+author: "Jimmy Gray-Jones"
+date: "2022-12-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Take the Boston dataset, available in D2L. This data has information about different
+neighborhoods in Boston, and we will use it to predict the median housing price for the
+neighborhoods. Here is an explanation of the variables:
+
+CRIM: Per capita crime rate by town
+ZN: Proportion of residential land zoned for lots over 25,000 sq. ft
+INDUS: Proportion of non-retail business acres per town
+CHAS: Charles River dummy variable (= 1 if tract bounds river; 0 otherwise)
+NOX: Nitric oxide concentration (parts per 10 million)
+RM: Average number of rooms per dwelling
+AGE: Proportion of owner-occupied units built prior to 1940
+DIS: Weighted distances to five Boston employment centers
+RAD: Index of accessibility to radial highways
+TAX: Full-value property tax rate per $10,000
+PTRATIO: Pupil-teacher ratio by town
+
+B: 1000(Bk — 0.63)², where Bk is the proportion of [people of African American descent] by town
+LSTAT: Percentage of lower status of the population
+MEDV: Median value of owner-occupied homes in $1000s
+
+```{r}
+
+data = read.csv('Boston.csv')
+
+data
+
+```
+
+```{r}
+#(a) Create a pairs plot with ggpairs for the data. Comment on possible
+
+#ggpairs(data)
+
+   #a. Multicollinearity issues
+    
+    #crim, zn, and chas all are displaying similar line plots -- probably some sort of multicollinearity there. A lot of the graphs also look similar to one another, though, it's hard to see on the pairs I have currently
+    
+  #b. Imbalance/saturation issues
+
+    #The graphs look extremely saturated
+    
+```
+
+```{r}
+#(b) Which other variable correlates the strongest with medv? Note that strongest mean largest absolute value, whether it’s positive or negative.
+
+abs(cor(data$medv,data))
+
+#The variable that correlates the strongest with medv is lstat
+
+```
+
+```{r}
+#(c) Build a simple linear regression model with that variable as the x, with
+
+#a. Constructing the normal equations ATAx = ATb, and solving for the coefficient vector x
+
+A = cbind(1,data$medv)
+b = data$lstat
+x = solve(t(A) %*% A) %*% t(A) %*% b
+resid = b - x[1] - x[2]*data$lstat 
+resid_naive = data$lstat - mean(data$lstat)
+sqrt(mean(resid_naive^2))
+sqrt(mean(resid^2))
+x #Variable that correlates strongest with medv
+
+#b. Using lm. Do the coefficients agree?
+
+real_mod <- (lm(data = data, data$medv ~ data$lstat))
+
+summary(real_mod)
+
+#I would say the coefficiencts agree; The standard deviation between median value and x is -.572
+```
+
+```{r}
+#(d) Next, build a linear regression model with the 2 other variables in addition that correlate most strongly with medv, using lm (so 3 variables total).
+
+#a. How do the adjusted R-squared values compare between the models?
+
+#Predicting median value given these 3 variables
+real_mod_2 <- (lm(data = data, data$medv ~ data$lstat + data$black + data$ptratio)) 
+
+
+summary(real_mod_2)
+
+#b. Comment on the significance of the coefficients
+
+  #All og the coefficients are statistically significant, as they all fall within that 
+  # (P<0.05) range
+
+#c. Are the coefficients in the correct direction? Be sure to explain.
+
+  #lstat and ptratio are going towards negative y, while black is increasing by a very very       small margin
+
+#d. Comment on the multicollinearity between the 3 x’s. Knowing this, is there an x that should be eliminated? If so, eliminate 1 x and try another one (just substitute  in and out the others to find the best fit) which improves the model. How does the adjusted R-squared value compare to that in (a)?
+
+  #There could be potential multicollinearity between ptratio and lstat; They have very close numbers overall, and if I had to choose one, I would probably get rid of the ptratio data 
+
+updated_real_mod_2 <- (lm(data = data, data$medv ~ data$black + data$ptratio)) 
+
+
+summary(updated_real_mod_2)
+
+#Our adjusted R_squared value is half of the amount in our original model, vs. our updated model, though the residual error is 2 points greater than it is in our original model
+
+#e. For the model in d., perform a sensitivity analysis of the inputs. Graph it as a tornado diagram.
+
+boston_mod <- lm(data = data, data$medv ~ data$lstat + data$black + data$ptratio)
+sum_std <- sd(data$lstat)*abs(boston_mod$coefficients[2]) + sd(data$black)*abs(boston_mod$coefficients[3]) + sd(data$ptratio)*abs(boston_mod$coefficients[4])
+lstat_sens <- sd(data$lstat)*boston_mod$coefficients[2]/sum_std
+black_sens <- sd(data$black)*boston_mod$coefficients[3]/sum_std
+ptratio_sens <- sd(data$ptratio)*boston_mod$coefficients[4]/sum_std
+lstat_sens 
+black_sens  
+ptratio_sens 
+
+barplot(c(lstat_sens, black_sens, ptratio_sens), horiz = TRUE)
+
+#f. Add the chas variable to the model in d. Comment on how it works.
+
+updated_2_real_mod_2 <- (lm(data = data, data$medv ~ data$chas + data$black + data$ptratio)) 
+
+summary(updated_2_real_mod_2)
+
+#The model with chas added in makes the multiple R squared go up by .2 points, but the residual error went down by .1 points; The variance went up slightly, but the model fits the data better
+
+```
+```{r}
+#(e) Now, re-do the regression from (c), except this time
+
+real_mod_3 <- (lm(data = data, data$medv ~ data$lstat + data$black + data$ptratio)) 
+
+
+#    a. Split the data into training and testing datasets (70/30 split)
+
+split_pct <- 0.7
+n <- length(data$medv)*split_pct # train size
+row_samp <- sample(1:length(data$medv), n, replace = FALSE)
+train <- data[row_samp,]
+test <- data[-row_samp,]
+
+    
+#    b. Build the model on the training dataset
+
+boston_train_mod <- lm(data = data, medv ~ lstat + black + ptratio)
+    
+#    c. Use the model to predict values for the test dataset
+
+test_pred <- predict(boston_train_mod,test)
+    
+#    d. How do the results compare, in terms of RMSE?
+
+test_error <- test$medv - test_pred
+rmse_train <- sqrt(mean(boston_train_mod$residuals^2))
+rmse_test <- sqrt(mean(test_error^2))
+
+rmse_train
+rmse_test
+
+#The RMSE test score is higher than the RMSE train score
+
+```
+
+```{r}
+#(f) For the model in (d), what are the 95% confidence intervals for the parameters, according to the t-values?
+
+summary(updated_real_mod_2)
+
+black_tvalue = 6.721
+ptratio_tvalue = -12.389
+
+black_tvalue* qt(c(.025,.975),503) #For black
+ptratio_tvalue* qt(c(.025,.975),503) #For ptratio
+
+```
+
+
+```{r}
+#(g) For the model in (d), what are the 95% confidence intervals for the parameters, using
+
+#    a). regular bootstrapping, and
+
+coeff1 <- rep(0, 100)
+coeff2 <- rep(0, 100)
+weight <- rep(0,length(data$medv))
+for(i in 1:100){
+  n <- length(data$black)
+  row_samp <- sample(1:n, n, replace = TRUE)
+  boston_samp <- data[row_samp,]
+  temp_mod <- lm(data = data, data$medv ~ data$black + data$ptratio)
+  coeff1[i] <- temp_mod$coefficients[1]
+  coeff2[i] <- temp_mod$coefficients[2]
+}
+quantile(coeff1, c(0.025, 0.975))
+quantile(coeff2, c(0.025, 0.975))
+    
+#    b). Bayesian bootstrapping?
+
+#UNCOMMENT THIS FOR THE ANSWER; COULD NOT KNIT WITH IT FOR SOME REASON
+
+#coeff1 <- rep(0, 100)
+#coeff2 <- rep(0, 100)
+#weight <- rep(0,length(data$medv))
+#n = length(data$lstat)
+#for(i in 1:100){
+  #weight <- rdirichlet(1, rep(1,n)) #Bayesian bootstrapping if added in
+  #row_samp <- sample(1:n, n, prob=weight, replace = TRUE)
+  #boston_samp <- data[row_samp,]
+  #temp_mod <- lm(data = data, data$medv ~ data$black + data$ptratio)
+  #coeff1[i] <- temp_mod$coefficients[1]
+  #coeff2[i] <- temp_mod$coefficients[2]
+#}
+#quantile(coeff1, c(0.025, 0.975))
+#quantile(coeff2, c(0.025, 0.975))
+
+```
+    
+```{r}
+#(h) Looking back at the ggpairs plot, are there any possible variable transformations of the x’s that might help? Try some (be creative!)
+
+#We could transform a lot of the x's that have multicollinearity issues to higher dimensions to make them not similar
+
+```

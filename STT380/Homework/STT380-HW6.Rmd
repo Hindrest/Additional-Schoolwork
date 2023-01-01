@@ -1,0 +1,267 @@
+---
+title: "STT380-HW6"
+author: "Jimmy Gray-Jones"
+date: "2022-11-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(DirichletReg)
+library(rstan)
+```
+
+```{r}
+#1) A person playing a game has a prior belief of their probability of winning the game as a Beta(2, 6) distribution. The person plays 20 games, with the results as follows: WWLLLWLWLWLWLWWLWLLL
+
+win_loss = c(1,1,0,0,0,1,0,1,0,1,0,1,0,1,1,0,1,0,0,0) #1 = win, 0 = loss
+
+W = length(win_loss[win_loss == 1])
+L = length(win_loss[win_loss == 0])
+
+x = seq(0,1,.05)
+
+beta_dist = dbeta(x,2,6)
+
+#a. Construct the posterior distribution after each game
+
+post_beta_dist = dbeta(x,2+W,6+L)
+
+print(post_beta_dist)
+
+#b. Compare the expected value and standard deviations of the prior to the final posterior.
+
+#Expected value = alpha / (alpha + beta)
+
+EX_prior = 2 / (2+6)
+
+EX_posterior = (2+W) / (2+W + 6+L)
+
+print(EX_prior)
+print(EX_posterior)
+
+#c. Calculate a 90% 2-sided confidence interval for both the prior and posterior.
+
+mn <- mean(beta_dist)
+sdev <- sd(beta_dist)
+n <- length(beta_dist)
+serror <- sdev/sqrt(n)
+CI_90_prior <- mn + serror*qt(c(0.1,0.90), length(iris$Sepal.Width) - 1)
+
+print(CI_90_prior)
+
+mn <- mean(post_beta_dist)
+sdev <- sd(post_beta_dist)
+n <- length(post_beta_dist)
+serror <- sdev/sqrt(n)
+CI_95_prior <- mn + serror*qt(c(0.1,0.90), length(iris$Sepal.Width) - 1)
+
+print(CI_95_prior)
+
+#d. Plot the final posterior distribution and the prior on the same graph.
+
+plot(x,beta_dist,type="l") + lines(x,post_beta_dist,type="l")
+```
+
+
+
+```{r}
+#2.) Take a game where 2 players take turns. Each player, when it is their turn, has a 20% chance of winning the game. There are 4 states: 
+
+#(1) It is player 1’s turn; (2) it is player 2’s turn; (3) player 1 has won the game; 
+#and (4) player 2 has won the game. We can consider this with a transition matrix.
+
+#a. What is the 4x4 transition matrix for this game?
+
+trans_matrix = cbind(c(.2,.8,0,0),c(.2,0,.8,0),c(),c(0,0,1,0),c(0,0,0,1)) #p1 winning / losing, p2 winning / losing, 3rd/4th rows = p1/p2 wins
+
+print(trans_matrix)
+
+#b. What is the state after 5 turns? What is the probability that the game has ended by that point?
+
+s0 <- as.matrix(c(.25,.25,.25,.25)) #50% chance for it to be either player 1's turn or player 2's turn, #50% chance to win
+s <- s0
+for(i in 1:5){
+  s_new <- trans_matrix %*% s
+  if(sum(abs(s-s_new))<0.0001){
+    break
+  }
+  s <- s_new
+}
+
+print(s) #state after five turns
+
+#Probability that the game has ended by this point, is 1
+
+#c. Consider a case where player 1 goes first. Run the action of the transition matrix many times to determine the probability that player 1 wins the game.
+
+s0 <- as.matrix(c(.5,0,.25,.25)) #Player 1 will always go first
+s <- s0
+for(i in 1:5){
+  s_new <- trans_matrix %*% s
+  if(sum(abs(s-s_new))<0.0001){
+    break
+  }
+  s <- s_new
+}
+
+print(s) #The probability of player one winning the game is 72%
+
+
+#d. Consider the case where players flip a coin to go first. What is the initial state, in terms of probabilities of being in each state? Confirm that each player has a 50% chance of winning.
+
+#The initial state, in terms of probability, would be ((.5,.5,0,0),(.5,0,.5,0),(0,0,1,0),(0,0,0,1))
+
+s0 <- as.matrix(c(.5,.5,0,.0),c(.5,0,.5,0),c(0,0,1,0),c(0,0,0,1)) #50% chance for either player to go first, 50% chance for either player to win
+s <- s0
+for(i in 1:100){
+  s_new <- trans_matrix %*% s
+  if(sum(abs(s-s_new))<0.0001){
+    break
+  }
+  s <- s_new
+}
+
+print(s)
+
+#e. Suppose in a modified game that player 1 is a bit better than player 2, so that player 1 has a 25% chance winning of their turn (player 2 still has a 20% chance). What is the transition matrix? Consider the initial state from (d). What is the probability of player 1 winning?
+
+trans_matrix = cbind(c(.25,.75,0,0),c(.2,0,.8,0),c(0,0,1,0),c(0,0,0,1))
+
+s0 <- as.matrix(c(.5,.5,0,.0),c(.5,0,.5,0),c(0,0,1,0),c(0,0,0,1)) #50% chance for either player to go first, 50% chance for either player to win
+s <- s0
+for(i in 1:5){
+  s_new <- trans_matrix %*% s
+  if(sum(abs(s-s_new))<0.0001){
+    break
+  }
+  s <- s_new
+}
+print(s)
+
+#With the new trans matrix, the probability of player 1 winning is .99
+
+
+
+
+```
+
+```{r}
+#3. Bayesian Inference, page 61. #1 (not a typo)
+
+#For each MCMC simulation scenario described below, sketch by hand what a single chain trace plot might look like for each simulation.
+
+#a. The chain is mixing too slowly.
+
+#b. The chain has high correlation.
+
+#c. The chain has a tendency to get ‘stuck.’
+
+#d. The chain has no problems!
+
+```
+
+```{r}
+#4. Bayesian Inference, page 61. #1 (not a typo)
+
+#Below are examples of “chains” 𝜃[(1)], 𝜃[(2)], ..., 𝜃[(𝑘)], for different parameters. For each example, determine whether the given chain is a Markov-chain. Explain:
+
+#a. You go out to eat N nights in a row and 𝜃[(𝑖)] is the probability you go to a Thai restaurant on day 𝑖.
+
+#Yes, it is a markov chain; The matrix would be composed of whether I go to the restaurant or not, with 7 different states (one for each day) and the probability of going vs not going
+
+#b. You play the lottery N nights in a row and 𝜃[(𝑖)] is the probability you win the lottery on day 𝑖.
+
+#Yes, it is a markov chain; The matrix would be composed of the odds of winning vs. losing, and the initial state would be either 0 or 1 days
+
+#c. You play your roommate in checkers N times in a row and 𝜃[(𝑖)] is the probability you win game 𝑖.
+
+#Yes, this is a markov chain; State 1 is my turn, state 2 is roommate's turn, state 3 is I win, state 4 is he wins. The initial states would either be the probabilities of winning a game of checkers, and/or the number of checkers games played
+
+```
+
+
+```{r}
+#5. Bayesian Inference, page 61. #1 (not a typo)
+
+
+#Consider the Beta-Binomial model fr 𝜃 with 𝑋|𝜃 ∼ 𝐵𝑖𝑛𝑜𝑚(𝜃, 𝑛) and 
+#𝜃 ∼ 𝐵𝑒𝑡𝑎(3, 8). 
+
+#Suppose that in 𝑛 = 10 independent trials, you observe 𝑌 = 2 successes.
+
+#a. Simular the posterior model of 𝜃 with RStan using 3 chains and 12,000 interations per chain.
+
+#beta.binom.model <- "
+#data {
+#int<lower = 0, upper = 14> X;
+#}
+#parameters {
+#real<lower = 0, upper = 1> theta;
+#}
+#model {
+#X ~ binomial(14, theta);
+#theta ~ beta(3, 8);
+#}
+#"
+#options(width=60)
+#sim.posterior <- stan(model_code = beta.binom.model,
+#                      data = list(X = 2),
+#                      chains = 3,
+#                      iter = 12000,
+#                      seed=12345)
+
+#b. Produce trace plots for each of the three chains.
+
+#mcmc_trace(sim.posterior,pars = "theta", size= 0.1)
+
+#c. What is the range of values on the trace plot x-axis? Why is the maximum value of this range not 12,000?
+
+#length(sim.posterior)
+
+#The maximum range of the posterior value is not 12,000 because to calculate the range of values, it is the size of the dataset subtracted from the number of coefficients
+
+
+#d. Create density plots for the values of each of the three chains.
+
+#mcmc_dens(sim.posterior, pars = "theta") +
+#  yaxis_text(TRUE) +
+#  ylab("density") +
+#  stat_function(fun = function(x) dbeta(x, 11, 7),
+#                col = "black",size = 2)
+
+#e. Use the Bata-Binomial conjugate model to now specify the posterior dis-tribution of 𝜃. How does your MCMC approximation compare to the analytically-derived model?
+
+#The beta-binomial conjugate model is more precise
+
+```
+
+```{r}
+#6. A linear regression model prediction is in the form of y = 2.18 x1 – 4.56x2. The regression was run on 18 data points. The root mean square error of the residuals is 0.856.
+
+#a. What is the E(y | (x1,x2) = (2, -3))?
+
+rmse = .856
+n = 18
+x1 = 2
+x2 = -3
+
+y = (2.18*x1) - (4.56*x2) #Expected value of y, given x1 and x2
+
+
+cat('Expected value of Y is:',y) 
+
+
+#b. What is the probability that y > 20, given that (x1,x2) = (2, -3)?
+
+print('Probability that y>20 is:',)
+
+y_0 = 20
+
+cat('Probability of y being greater than 20 is:',pt((y_0 - (y))/rmse,n-1))
+
+
+``` 
+
+

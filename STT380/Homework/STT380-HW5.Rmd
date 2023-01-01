@@ -1,0 +1,346 @@
+---
+title: "STT380-HW5"
+author: "Jimmy Gray-Jones"
+date: "2022-11-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=TRUE}
+library(DirichletReg)
+
+car_data = read.csv('cars_multi.csv')
+
+car_data
+
+```
+
+```{r, echo=TRUE}
+#In the car_multi.csv file, there is a field called acceleration. Calculate
+
+#a. The mean value
+
+mean_car_data = mean(car_data$acceleration)
+
+#b. The standard deviation
+
+sd_car_data = sd(car_data$acceleration)
+
+#c. The 5th and 95th quantile
+
+n = length(car_data$acceleration)
+serror <- sd_car_data/sqrt(n)
+
+CI <- mean_car_data + serror*qt(c(0.025,0.975), n - 1)
+CI
+
+```
+
+```{r, echo=TRUE}
+#2. For this acceleration field, assuming it is normally distributed, conduct a hypothesis test at the 95% confidence level to determine whether you can say the mean value is greater than 15.2
+
+#State the null hypothesis. Conduct the hypothesis test by
+
+#The null hypothesis is that the mean value for acceleration is greater than 15.2
+
+#a. Constructing an appropriate confidence interval
+
+CI_95 = mean_car_data + serror*qt(.975, n - 1)
+
+CI_95
+
+#b. Calculating a p-value, both by
+
+#i. Analytically
+
+samp_mean_1 = 15.2
+car_sd = sd(car_data$acceleration)
+n = length(car_data$acceleration)
+
+t_value = ((15.2 - mean_car_data) / serror)
+
+u = pt(t_value,n-1)
+
+p_value_a = 1 - u
+
+print(p_value_a)
+
+#p-value greater than 0.05, failure to reject null hypothesis
+
+#ii. Running an appropriate simulation
+
+#One-Sided test
+trials = 100000
+sampmean = mean(mean_car_data)
+n = length(car_data$acceleration)
+H0mean = 15.2 #Null Hypothesis
+simmean = rep(0,trials)
+for(i in 1:trials){
+  simsamp = rexp(n, 1/H0mean)
+  simmean[i] = mean(simsamp)
+}
+p_value <- sum(simmean >= sampmean)/trials
+p_value
+
+#p-value greater than 0.05; failure to reject null hypothesis
+
+```
+
+```{r, echo=TRUE}
+#3. A Poisson process generates the following data: {3, 5, 6, 7, 10, 4, 5, 6, 4, 3}, covering 2 second intervals. 
+
+#Run a Monte Carlo simulation to test the hypothesis at a 95% confidence that the rate parameter is greater than 2.
+
+poisson_data = c(3, 5, 6, 7, 10, 4, 5, 6, 4, 3)
+
+#One-Sided test
+trials = 100000
+sampmean = mean(poisson_data)
+n = length(poisson_data)
+H0mean = 2 #Null Hypothesis
+simmean = rep(0,trials)
+for(i in 1:trials){
+  simsamp = rexp(n, 1/H0mean)
+  simmean[i] = mean(simsamp)
+}
+p_value <- sum(simmean >= sampmean)/trials
+p_value
+
+```
+
+```{r, echo=TRUE}
+#4. For the 4 values you calculated in #1, construct 95% confidence intervals using
+
+#a. Regular bootstrapping
+car_mean_a = rep(0,10000)
+car_sd_a = rep(0,10000)
+car_CI_5_a = rep(0,10000)
+car_CI_95_a = rep(0,10000)
+for(i in 1:10000)
+  {
+  car_samp_a = sample(car_data$acceleration, length(car_data$acceleration), replace = TRUE)
+  car_mean_a[i] = mean(car_samp_a)
+  car_sd_a[i] = sd(car_samp_a)
+  car_CI_5_a[i] = quantile(car_samp_a, 0.025)
+  car_CI_95_a[i] = quantile(car_samp_a, 0.975)
+  }
+quantile(car_mean_a, .975)
+quantile(car_sd_a, .975)
+quantile(car_CI_5_a, .975)
+quantile(car_CI_95_a, .975)
+
+#b. Bayesian bootstrapping
+
+weight <- rep(0,length(car_data))
+car_mean_b = rep(0,10000)
+car_sd_b = rep(0,10000)
+car_CI_5_b = rep(0,10000)
+car_CI_95_b = rep(0,10000)
+for(i in 1:10000){
+  weight <- rdirichlet(1, rep(1,length(car_data$acceleration)))
+  car_samp_b <- sample(car_data$acceleration, length(car_data$acceleration), prob = weight, replace = TRUE)
+  car_mean_b[i] = mean(car_samp_b) 
+  car_sd_b = sd(car_samp_b)
+  car_CI_5_b = quantile(car_samp_b,.025)
+  car_CI_95_b = quantile(car_samp_b,.975)
+}
+quantile(car_mean_b, .975)
+quantile(car_sd_b, .975)
+quantile(car_CI_5_b, .975)
+quantile(car_CI_95_b, .975)
+
+```
+
+```{r, echo=TRUE}
+#5. Import the data in the dataset called “longtail.csv.” Calculate the standard deviation and the 0.99th quantile. 
+
+longtail_data = read.csv('longtail.csv')
+
+longtail_data
+
+sd_longtail = sd(longtail_data$x)
+
+print(sd_longtail)
+
+print(quantile(longtail_data$x,.99))
+
+
+#Then create 95% confidence intervals for these two quantities, using both regular and Bayesian bootstrapping. Describe what you see with these results.
+
+#a. Regular bootstrapping
+sd_longtail_a = rep(0,10000)
+quantile_longtail_a = rep(0,10000)
+for(i in 1:10000)
+  {
+  longtail_samp = sample(longtail_data$x, length(longtail_data$x), replace = TRUE)
+  sd_longtail_a[i] = sd(longtail_data$x)
+  quantile_longtail_a[i] = quantile(longtail_data$x,.99)
+  }
+quantile(sd_longtail_a,.975)
+quantile(quantile_longtail_a,.975)
+
+#b. Bayesian Bootstrapping
+sd_longtail_b = rep(0,10000)
+quantile_longtail_b = rep(0,10000)
+weight <- rep(0,length(longtail_data))
+for(i in 1:10000){
+  weight <- rdirichlet(1, rep(1,length(longtail_data$x)))
+  longtail_samp_b <- sample(longtail_data$x, length(longtail_data$x), prob = weight, replace = TRUE)
+  sd_longtail_b[i] = sd(longtail_data$x)
+  quantile_longtail_b[i] = quantile(longtail_data$x,.99)
+}
+
+quantile(sd_longtail_b,.975)
+quantile(quantile_longtail_b,.975)
+
+
+#Bayesian Bootstrapping and Regular bootstrapping gave the same results between the two
+
+```
+
+```{r, echo=TRUE}
+#6. #1, page 22, Bayesian Inference
+
+#Let’s return to your game of ping-pong. Your friend thinks the possible values for 𝜃, your long-term probability of winning, are 0.4, 0.5, and 0.6, with probabilities 0.2, 0.6, and 0.2, respectively. Suppose you win four games out of five
+
+#a. Fill out the rest of the table above.
+
+thetas = c('theta',0.4,0.5,0.6,'total')
+priors = c('Priors',0.2,0.6,0.2,1)
+LL_of_WLL = c('LL_of_WLL',.144,.125,.096,.365)
+Prior_Likelihood = c('Prior_Likelihood','.288c','.075c','.0192c',.3822)
+
+#CALCULATING PRIOR VALUES HERE TO FINISH TABLE
+
+t = c(seq(.4,.6,.1)) #Thetas from 0.4 to 0.6
+p = c(0.2,0.6,0.2) #Priors
+
+LLWL = (p)*(t*(1-t)^2)#Posterior values * Likelihood by posterior values
+
+normalizing_constant = sum(LLWL) #Normalizing constant
+
+normalizing_constant
+
+
+a = (0.2 * .144) / normalizing_constant #0.4
+b = (0.6 * .125) / normalizing_constant #0.5
+c = (0.2 * .096) / normalizing_constant #0.6
+
+a+b+c
+
+Posterior = c('Posterior',a,b,c,1)
+
+#Completed Table
+table = array(c(thetas,priors,LL_of_WLL,Prior_Likelihood,Posterior),dim=c(5,5))
+table
+
+#b. Give a sentence interpreting the posterior probability for 𝜃 = 0.6.
+
+#The posterior probability of theta = 0.6 is less than 0.4, because its LL_of_WLL 
+#is lower, giving it a lower prior likelihood and a lower posterior as a result
+
+#c. Find the prior and posterior expected values of 𝜃. How do they compare?
+
+#Expected Value of priors
+sum(0.4*0.2) #0.4
+sum(0.5*0.6) #0.5
+sum(0.6*0.2) #0.6
+
+#Expected values of posteriors
+sum(0.4*a) #0.4
+sum(0.5*b) #0.5
+sum(0.6*c) #0.6
+```
+
+```{r, echo=TRUE}
+#7. #3, page 22-23, Bayesian Inference
+
+#Information to be inserted into the table
+
+t_2 = c(seq(0,1,.1)) #Thetas from 0 to 1
+
+p_2 = c(seq(0,1,.1)) #Priors
+
+LL_3_4 = dbinom(4,7,t_2) #Likelihood w/ 4 wins and 3 losses
+
+p_2_by_LL_3_4 = p_2 * LL_3_4 #Prior * Likelihood
+
+LLWL_2 = (p_2)*(t_2*(1-t_2)^2)#Posterior values * Likelihood by posterior values
+
+normalizing_constant_2 = sum(LLWL_2) #Normalizing constant
+
+posterior_2 = (p_2 * p_2_by_LL_3_4) / normalizing_constant_2 #Posterior values
+
+sum(posterior_2)
+
+#Table information
+thetas_2 = c('theta',0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,'total')
+priors_2 = c('Priors',p_2,1)
+LL_of_WLL_2 = c('LL_of_WLL',LL_3_4,sum(LL_3_4))
+Prior_Likelihood_2 = c('Prior_Likelihood',p_2_by_LL_3_4,sum(p_2_by_LL_3_4))
+Posterior_2 = c('Posterior',posterior_2,sum(posterior_2))
+
+#Code for making table
+table_2 = array(c(thetas_2,priors_2,LL_of_WLL_2,Prior_Likelihood_2,Posterior_2),dim=c(13,5))
+
+#A)
+
+#Completed Table
+table_2
+
+#B)
+
+#Posterior probability for 0.3 is .017, which is greater than the previous value because as our prior increases along with theta, so do our posterior odds
+
+#C)
+prior_expected_value = t_2 * p_2
+
+posterior_expected_value = t_2 * posterior_2
+
+prior_expected_value
+posterior_expected_value
+
+#Prior expected values are much more likely to fit our given data because we have no information. Posterior expected values are much more messier, because we now have information to work with.
+
+#This is why our posterior expected values look a lot different than our prior expected values.
+
+#D)
+
+LL_5_6 = dbinom(5,6,t_2) #Likelihood w/ 5 wins and 1 losses
+
+p_2_by_LL_5_6 = p_2 * LL_5_6 #Prior * Likelihood
+
+LLWL_3 = (p_2)*(t_2*(1-t_2)^2)#Posterior values * Likelihood by posterior values
+
+normalizing_constant_3 = sum(LLWL_3) #Normalizing constant
+
+posterior_3 = (p_2 * p_2_by_LL_5_6) / normalizing_constant_3 #Posterior values
+
+posterior_3
+
+sum(posterior_3)
+
+#E)
+
+LL_9_4 = dbinom(9,13,t_2) #Likelihood w/ 9 wins and 4 losses
+
+p_2_by_LL_9_4 = p_2 * LL_9_4 #Prior * Likelihood
+
+LLWL_4 = (p_2)*(t_2*(1-t_2)^2)#Posterior values * Likelihood by posterior values
+
+normalizing_constant_4 = sum(LLWL_4) #Normalizing constant
+
+posterior_4 = (p_2 * p_2_by_LL_9_4) / normalizing_constant_3 #Posterior values
+
+posterior_3
+
+posterior_4
+
+sum(posterior_3)
+
+#My posterior distribution for d is bigger than my posterior distribution for e
+
+```
