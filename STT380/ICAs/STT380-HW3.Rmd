@@ -1,0 +1,289 @@
+---
+title: "STT380-HW3"
+author: "Jimmy Gray-Jones"
+date: "2022-10-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mvtnorm)
+```
+
+```{r, echo = TRUE}
+
+# 1. For the following 4 discrete distributions, calculate the expected value and standard deviation in following two/ three ways. Compare to make sure you get approximately the same result for each.
+
+#(i) create a simulation of 1,000,000 outcomes, and calculate the average and standard deviation of the outcomes;
+
+#(ii) use the formulas for expected values and variance for standard distributions (for example, for binomial, E(X) = np)
+
+#(iii) (for binomial distribution only) use sequences of the possible outcomes to generate the expected value and standard deviation.
+
+#(a) binomial, 12 trials, p = 0.2
+
+#i) 
+b1 = rbinom(1000000,12,0.2)
+mean(b1)
+sd(b1)
+
+#ii)
+ev_b1 = 100000 * 0.2
+var_b1 = 100000 * 0.2 * (1 - 0.2)
+
+#iii)
+mean(b1)
+sd(b1)
+
+
+#(b) exponential, λ = 0.03
+
+#i)
+b2 = rexp(1000000,0.03)
+mean(b2)
+sd(b2)
+
+#ii)
+
+ev_b2 = 1 / 0.03
+
+var_b2 = 1 / ((0.03)^2)
+
+#(c) Poisson, rate = 0.4/minute, t = 20 minutes
+
+#i)
+
+b3 = rpois(1000000,.4)
+mean(b3)
+sd(b3)
+
+#ii)
+ev_b3 = 0.4
+var_b3 = 0.4
+
+
+#(d) Uniform, interval = [0, 6]
+
+#i)
+b4 = runif(1000000,0,6)
+mean(b4)
+sd(b4)
+
+#ii)
+ev_b4 = (0 + 6)/2
+var_b4 = (1/12) * ((6 - 0)^2)
+
+```
+
+
+```{r, echo=TRUE}
+
+#2) You are a manager for product development. You have a $500,000 budget to spend on research for a new product. There are two products you can research:
+
+#(i) Product 1 has a 30% chance of producing a successful prototype. If a prototype is created, it has an 80% chance of making it to market. If the product makes it to market, the amount of sales it will produce is modeled as an exponential distribution with mean value $9,000,000.
+
+#(ii) Product 2 has a 60% chance of producing a successful prototype. If a prototype is created, it has an 90% chance of making it to market. If the product makes it to market, the amount of sales it will produce is modeled as a uniform distribution between $2,000,000 and $8,000,000. However, if successful, there is a 30% chance that the company will be successfully sued for patent infringement, in which case, the company will lose $1 and $3,000,000 (according to a uniform distribution).
+
+#(a) Calculate the expected value of the alternatives and determine whether you should give the go-ahead for the development of product 1 or product 2
+
+
+#Expected value of producing a successful prototype + making it to market
+
+#Using 1/lambda = expected value, I rearranged to solve for the lambda that will give me 9 million as a mean then used the formula for E.V
+ev_p1 = (1/(1/9000000))
+
+#Expected value of the first dist. + second dist.
+#Substracting the second dist. because it represents a loss of money
+
+ev_p2 = ((8000000+2000000)/2) - ((3000000-1)/2)
+
+
+#Product one, according to the expected value, should be given the go ahead
+
+#(b) Create a simulation for two products, with 1,000,000 runs. Confirm that the average value of the simulation is about equal to what you calculated for the alternatives in (a). For what percent of the simulations do you at least make your money back for the development?
+
+p1_sim = rexp(1000000,1/9000000)
+
+mean(p1_sim)
+
+p2_sim = runif(1000000,2000000,8000000) - runif(1000000,1,3000000)
+
+mean(p2_sim)
+
+p1_counter = 0
+p2_counter = 0
+
+for(i in p1_sim)
+{
+  if(i>=500000)
+  {
+    p1_counter = p1_counter + 1
+  }
+}
+
+cat("There are",p1_counter,"instances where p2 makes the initial investment back or more")
+
+for(i in p2_sim)
+{
+  if(i>=500000)
+  {
+    p2_counter = p2_counter + 1
+  }
+    
+}
+
+cat("There are",p2_counter,"instances where p2 makes the initial investment back or more")
+
+#(c) For what percent of simulations do you make more money for Product 1 vs. Product 2?
+
+p1_count = 0
+p2_count = 0
+
+for(i in 1:1000000)
+{
+  if(p1_sim[i] < p2_sim[i])
+  {
+    p2_count = p2_count + 1
+  }
+  if(p2_sim[i] < p1_sim[i])
+  {
+    p1_count = p1_count + 1
+  }
+}
+
+if(p1_count < p2_count)
+{
+  cat("Product 2 has ",p2_count - p1_count," more instances of making more money than product 1 ")
+}
+
+if(p2_count < p1_count)
+{
+cat("Product 1 has ",p1_count - p2_count," more instances ofmaking more money than product 2 ")
+}
+
+#(d) Suppose the company needs the revenue to pay off a $7 million loan. Which alternative is more likely to produce more than $7,000,000 in revenue?
+
+#Using both pexp and punif to calculate the probabilities that they get at least 7 million or greater in revenue
+
+pexp(7000000,1/9000000)
+punif(7000000,2000000,8000000)
+
+#Product 2 is more likely to produce 7 milion dollars or more in revenue
+
+```
+
+```{r, echo=TRUE}
+
+#3. Define a multivariate normal distribution with mean value = (-1, 2), var(X) = 1, var(Y) = 2, and the correlation of X and Y = -0.3. Plot this distribution, by
+
+x = seq(-1,2,0.1)
+y = seq(-1,2,0.1)
+var_x = 1
+var_y = 2
+cor_xy = -0.3
+
+Sigma <- cbind(c(var_x,cor_xy*sqrt(var_x)*sqrt(var_y)),c(cor_xy*sqrt(var_x)*sqrt(var_y),var_y))
+
+z <- matrix(nrow=length(x), ncol=length(y))
+
+for (i in 1:length(x)){
+  for (j in 1:length(y)){
+    z[i,j] <- dmvnorm(c(x[i],y[j]),c(0,0),Sigma)
+  }
+}
+
+#(a) Creating a contour plot of the pdf, and
+
+contour(x,y,z)
+
+#(b) Simulate the distribution 1,000 times and plot the simulated points
+
+dist = rmvnorm(1000,mean(z))
+
+plot(dist)
+
+#(c) Next, using a larger simulation of the same distribution (1,000,000 values), estimate
+
+#(i) E(X)
+
+#General simulation of the distribution
+dist2 = rmvnorm(1000000,mean(z))
+
+#Separating the x and y values of z so I can find the expected values of x and y respectively, as well as the variances 
+dist2_x = rmvnorm(1000000,mean(z[1,]))
+dist2_y = rmvnorm(1000000,mean(z[,1]))
+
+#Expected values of x
+mean(dist2_x)
+
+#(ii) E(Y)
+
+#Expected values of y
+mean(dist2_y)
+
+#(iii) Var(X) and Var(Y)
+
+#Variances of x and y
+var(dist2_x)
+var(dist2_y)
+
+#(iv) E(X + Y) and Var(X + Y). Compare the result to what the results of the formulas for linear combinations of random variables. 
+
+e_xy = mean(dist2_x + dist2_y)
+
+var_xy = var(dist2_x + dist2_y) 
+
+
+#(v) E(X|Y = 3)
+
+v_y = 3
+
+#Expected value of X, given that expected value of y is 3
+mean(dist2_x)*3
+
+```
+
+
+```{r, echo=TRUE}
+
+#4) Suppose we have an exponential probability distribution with parameter λ = 1/3, so that its expected value is 3. We will perform some simulation experiments to determine the behavior of the sample mean.
+
+#(a) Generate 2,000 simulations which each constitute 100 outcomes of this distribution. Calculate the mean values for the 2,000 experiments.
+
+g1 = rexp(2000,1/3)
+
+#(b) Next, calculate the mean value and variance for the 2,000 sample means.
+
+mean_g1 = mean(g1)
+mean_g1
+
+var_g1 = var(g1)
+var_g1
+
+
+#(c) Repeat (a) and (b) for N = 1,000, 10,000, 100,000, and 1,000,000 outcomes (2,000 simulations of each). Note: 1,000,000 could take several minutes.
+
+g2 = rexp(1000,g1)
+mean(g2)
+var(g2)
+
+g3 = rexp(10000,g1)
+mean(g3)
+var(g3)
+
+g4 = rexp(100000,g1)
+mean(g4)
+var(g4)
+
+g5 = rexp(1000000,g1)
+mean(g5)
+var(g5)
+
+
+#(d) Plot the log(Variance) vs. log(N). Do you get something which is close to a straight line? What is the slope? Does the relationship between N and the variance close to what you would expect with the Central Limit Theorem?
+
+log_v = log(var(g5))
+log_n = log(g5)
+
+plot(log(g5))
+```

@@ -1,0 +1,62 @@
+---
+title: "ICA-3 [STT 380]"
+author: "Jimmy Gray-Jones"
+date: '2022-09-12'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=TRUE}
+
+#1a)
+
+a = c(.3,.2,.15,.35)
+
+cumsum(a)
+
+#b)
+
+.35/1 * .35/1 #probability of rolling a 4 twice
+
+#2a) 
+coin = c(1,2)
+
+dbinom(2,12,1/2) #Probability of getting a 2, out of 12 experiments, with a 1/2 prob
+
+#b)
+
+dbinom(x<=3,12,1/2) #Probability of getting a 2, out of 12 experiments, with a 1/2 prob
+
+
+#c)
+
+experiment = sample(coin,size=12,replace=TRUE,prob=c(1/2,1/2))
+
+experiment
+
+#3a)
+
+dbinom(x>=2,6,.20)
+
+#b)
+
+dbinom(0,6,.20)
+
+#c)
+
+count = 0
+exp_vec = c()
+
+while(count!=1000)
+{
+  exp_2 = sample(c(1,2),size=6,replace=TRUE,prob=c(.20,.80)) #1=win, 2=loss
+  exp_vec = exp_2
+  count = count + 1
+}
+
+exp_vec
+
+```

@@ -1,0 +1,47 @@
+---
+title: "ICA4-STT380"
+author: "Jimmy Gray-Jones"
+date: '2022-09-14'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=TRUE}
+
+#customers enter a store at a rate of 1, every 4 minutes
+
+
+# 1/4 == .25 == lambda
+
+#1a)
+dpois(3,1/4 * 15)
+
+#b)
+dpois(12,1/4 * 60)
+
+#c)
+dpois(90,1/4 * 10)
+
+#d)
+rpois(10,1/4 * 120)
+
+
+#2a)
+dhyper(x=4,m=12,n=55-12,k=8)
+
+#b) 
+1 - dhyper(x=3,m=9,n=55-9,k=8)
+
+#c)
+dhyper(x=2,m=17,n=55-17,k=8)
+
+#4)
+rhyper(10,12,55-12,8)
+
+
+```

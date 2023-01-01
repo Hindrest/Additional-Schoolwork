@@ -1,0 +1,55 @@
+---
+title: "STT380-ICA7"
+author: "Jimmy Gray-Jones"
+date: "2022-09-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = TRUE}
+
+#Question 1
+
+#a)
+f_x = 16**(1/2)
+
+#b)
+un = runif(1000000,0,4)
+
+#c)
+inverse = (16*un)**(1/2)
+
+
+#d)
+hist(inverse)
+
+#e)
+
+e_x = mean(inverse)
+
+
+e_x2 = mean(inverse**2)
+
+
+#Question 2
+
+#a) 100,000
+
+#b)
+
+20 * 100000
+
+#c)
+demand=rnorm(1000000,100000,25000)
+
+#d)
+sales_vol = pmin(demand,120000)
+
+#e)
+profit = sales_vol * 20
+
+
+```

@@ -1,0 +1,62 @@
+---
+title: "ICA6-STT380"
+author: "Jimmy Gray-Jones"
+date: "2022-09-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=TRUE}
+
+#1)
+
+x=0:10
+
+plot(x,dexp(x,rate=1),type="l") 
+lines(x,dexp(x,rate=0.5))
+lines(x,dexp(x,rate=0.2))
+
+#2) a
+
+x = 8/3
+
+#b)
+
+variance = (x)**2
+variance
+
+
+#3)
+
+x = 1:8
+
+d = c(.1,.2,.1,.1,.1,.2,.1,.1)
+
+
+Exp_Val = sum(x*d)
+
+l1=x*x
+
+sum(l1 * d)
+
+Exp_Var = 24.4 - 4.4**2
+
+#4)
+
+#a
+mean(rpois(15,8))
+
+#b
+mean(rpois(1000,8))
+
+#c)
+#Roughly the same answers. Just the mean of 1000 is slightly higher than the mean of 15
+
+#5)
+
+sum(0:1000000) * mean(dbinom(0:1000000,24,prob=0.3))
+
+```
